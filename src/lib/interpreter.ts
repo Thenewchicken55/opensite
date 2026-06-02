@@ -22,6 +22,9 @@ export function executeAction(action: DomActionType, canvas: HTMLElement): strin
       case "create": {
         const tag = action.tag.toLowerCase();
         if (FORBIDDEN_TAGS.has(tag)) return `Cannot create <${tag}> elements`;
+        if (action.attributes?.id && document.getElementById(action.attributes.id)) {
+          return `Duplicate ID: "${action.attributes.id}" already exists`;
+        }
         const el = document.createElement(tag);
         if (action.content) el.textContent = action.content;
         if (action.attributes) {
@@ -143,6 +146,42 @@ export function executeAction(action: DomActionType, canvas: HTMLElement): strin
         const el = document.querySelector(action.selector);
         if (!el) return `Element not found: ${action.selector}`;
         if (el instanceof HTMLElement) el.classList.remove(action.class);
+        return null;
+      }
+
+      case "clone": {
+        if (isSelectorForbidden(action.selector)) return "Cannot clone protected element";
+        const el = document.querySelector(action.selector);
+        if (!el) return `Element not found: ${action.selector}`;
+        if (el === canvas || el === document.body || el === document.documentElement) {
+          return "Cannot clone root elements";
+        }
+        const clone = el.cloneNode(true) as HTMLElement;
+        if (clone.id) clone.id = `${clone.id}-copy`;
+        if (action.target) {
+          const target = document.querySelector(action.target);
+          if (!target) return `Target not found: ${action.target}`;
+          target.insertAdjacentElement(action.position ?? "beforeend", clone);
+        } else {
+          el.parentNode?.insertBefore(clone, el.nextSibling);
+        }
+        return null;
+      }
+
+      case "setText": {
+        if (isSelectorForbidden(action.selector)) return "Cannot modify protected element";
+        const el = document.querySelector(action.selector);
+        if (!el) return `Element not found: ${action.selector}`;
+        el.textContent = action.content;
+        return null;
+      }
+
+      case "setHTML": {
+        if (isSelectorForbidden(action.selector)) return "Cannot modify protected element";
+        const el = document.querySelector(action.selector);
+        if (!el) return `Element not found: ${action.selector}`;
+        if (action.content.toLowerCase().includes("<script")) return "Cannot insert script tags";
+        el.innerHTML = action.content;
         return null;
       }
     }

@@ -87,6 +87,25 @@ export const RemoveClassAction = z.object({
   class: z.string().min(1),
 });
 
+export const CloneAction = z.object({
+  action: z.literal("clone"),
+  selector: selectorSchema,
+  target: selectorSchema.optional(),
+  position: z.enum(["beforebegin", "afterbegin", "beforeend", "afterend"]).optional(),
+});
+
+export const SetTextAction = z.object({
+  action: z.literal("setText"),
+  selector: selectorSchema,
+  content: z.string(),
+});
+
+export const SetHTMLAction = z.object({
+  action: z.literal("setHTML"),
+  selector: selectorSchema,
+  content: z.string(),
+});
+
 export const DomAction = z.discriminatedUnion("action", [
   CreateAction,
   UpdateAction,
@@ -95,10 +114,13 @@ export const DomAction = z.discriminatedUnion("action", [
   InsertAction,
   ReplaceAction,
   MoveAction,
+  CloneAction,
   SetAttrAction,
   RemoveAttrAction,
   AddClassAction,
   RemoveClassAction,
+  SetTextAction,
+  SetHTMLAction,
 ]);
 
 export const ActionList = z.array(DomAction).min(1).max(MAX_ACTIONS);
@@ -115,3 +137,6 @@ export type SetAttrActionType = z.infer<typeof SetAttrAction>;
 export type RemoveAttrActionType = z.infer<typeof RemoveAttrAction>;
 export type AddClassActionType = z.infer<typeof AddClassAction>;
 export type RemoveClassActionType = z.infer<typeof RemoveClassAction>;
+export type CloneActionType = z.infer<typeof CloneAction>;
+export type SetTextActionType = z.infer<typeof SetTextAction>;
+export type SetHTMLActionType = z.infer<typeof SetHTMLAction>;

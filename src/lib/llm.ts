@@ -84,9 +84,7 @@ export async function initModel(onProgress?: ProgressCallback): Promise<boolean>
       state = "ready";
       return true;
     } catch (err) {
-      if (isGpuError(err)) {
-        return false;
-      }
+      if (isGpuError(err)) return false;
       throw err;
     }
   };
@@ -100,31 +98,25 @@ export async function initModel(onProgress?: ProgressCallback): Promise<boolean>
 }
 
 export async function generateActions(
-  prompt: string,
-  systemPrompt?: string,
+  messages: { role: "system" | "user" | "assistant"; content: string }[],
 ): Promise<DomActionType[]> {
   const backend = await getBackend();
 
   if (backend === "mock") {
-    return generateMock(prompt);
+    const lastUser = [...messages].reverse().find((m) => m.role === "user");
+    return generateMock(lastUser?.content ?? "");
   }
 
   if (backend === "server") {
     const config = loadServerConfig();
-    return generateWithServer(prompt, systemPrompt ?? "", config);
+    return generateWithServer(messages, config);
   }
 
   if (!engine) throw new Error("Model not initialized");
 
-  const messages: ChatCompletionMessageParam[] = [];
-  if (systemPrompt) {
-    messages.push({ role: "system", content: systemPrompt });
-  }
-  messages.push({ role: "user", content: prompt });
-
   const reply = await engine.chat.completions.create({
-    messages,
-    temperature: 0.7,
+    messages: messages as ChatCompletionMessageParam[],
+    temperature: loadServerConfig().temperature,
     max_tokens: 2048,
     top_p: 0.9,
   });

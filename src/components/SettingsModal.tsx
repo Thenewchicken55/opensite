@@ -107,6 +107,21 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
                   className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text-primary placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-accent"
                 />
               </div>
+              <div>
+                <label className="block text-xs text-text-muted mb-1">Temperature</label>
+                <div className="flex items-center gap-3">
+                  <input
+                    type="range"
+                    min="0"
+                    max="2"
+                    step="0.1"
+                    value={config.temperature}
+                    onChange={(e) => setConfig({ ...config, temperature: parseFloat(e.target.value) })}
+                    className="flex-1 accent-accent"
+                  />
+                  <span className="text-sm text-text-primary w-8 text-right tabular-nums">{config.temperature.toFixed(1)}</span>
+                </div>
+              </div>
               <p className="text-[11px] text-text-muted leading-relaxed">
                 Works with any OpenAI-compatible API. For local use, run{" "}
                 <code className="text-accent">ollama serve</code> and set the URL to{" "}

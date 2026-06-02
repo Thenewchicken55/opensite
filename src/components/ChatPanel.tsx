@@ -1,14 +1,32 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { MessageList, type ChatMessage } from "./MessageList";
 import { PromptInput } from "./PromptInput";
 import { SettingsModal } from "./SettingsModal";
 import { processPrompt, subscribe } from "../lib/pipeline";
 import { detectBackend, getEffectiveBackend } from "../lib/llm";
 
+const HISTORY_KEY = "opensite-chat-history";
+const MAX_HISTORY = 20;
+
+function loadHistory(): ChatMessage[] {
+  try {
+    const raw = localStorage.getItem(HISTORY_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch {}
+  return [];
+}
+
+function saveHistory(messages: ChatMessage[]): void {
+  try {
+    const trimmed = messages.slice(-MAX_HISTORY);
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(trimmed));
+  } catch {}
+}
+
 export function ChatPanel() {
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [messages, setMessages] = useState<ChatMessage[]>(loadHistory);
   const [isProcessing, setIsProcessing] = useState(false);
   const [backend, setBackend] = useState<"detecting" | "webllm" | "server" | "mock">("detecting");
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -17,8 +35,13 @@ export function ChatPanel() {
     detectBackend().then(setBackend);
   }, []);
 
-  const handleSend = async (text: string) => {
-    setMessages((prev) => [...prev, { role: "user", content: text }]);
+  useEffect(() => {
+    saveHistory(messages);
+  }, [messages]);
+
+  const handleSend = useCallback(async (text: string) => {
+    const userMsg: ChatMessage = { role: "user", content: text };
+    setMessages((prev) => [...prev, userMsg]);
     setIsProcessing(true);
 
     const unsub = subscribe((event) => {
@@ -51,21 +74,27 @@ export function ChatPanel() {
       }
     });
 
-    await processPrompt(text);
+    const history = messages
+      .filter((m) => m.role === "user" || m.role === "assistant")
+      .slice(-10)
+      .map((m) => ({ role: m.role as "user" | "assistant", content: m.content }));
+
+    await processPrompt(text, history);
     setBackend(getEffectiveBackend());
     unsub();
-  };
+  }, [messages]);
 
-  const handleReset = () => {
+  const handleReset = useCallback(() => {
     setMessages([]);
+    localStorage.removeItem(HISTORY_KEY);
     const canvas = document.querySelector<HTMLElement>("#canvas");
     if (canvas) canvas.innerHTML = "";
-  };
+  }, []);
 
-  const handleSettingsSaved = () => {
+  const handleSettingsSaved = useCallback(() => {
     setBackend("detecting");
     detectBackend().then(setBackend);
-  };
+  }, []);
 
   const backendLabel =
     backend === "detecting"

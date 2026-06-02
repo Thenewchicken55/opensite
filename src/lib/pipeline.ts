@@ -2,8 +2,14 @@ import { ActionList, type DomActionType } from "./schema";
 import { executeAll } from "./interpreter";
 import { generateActions, initModel, getBackend } from "./llm";
 import { takeSnapshot, restoreSnapshot } from "./history";
+import { serializeDom, formatDomSnapshot } from "./canvas-snapshot";
+import type { ChatMessage } from "./server-llm";
 
-const SYSTEM_PROMPT = `You are a DOM agent. You control a web page by outputting structured JSON actions.
+function buildSystemPrompt(canvas: HTMLElement): string {
+  const snapshot = serializeDom(canvas);
+  const domContext = formatDomSnapshot(snapshot);
+
+  return `You are a DOM agent. You control a web page by outputting structured JSON actions.
 
 You MUST respond with ONLY a JSON array of action objects. No prose, no markdown, no explanation.
 
@@ -20,13 +26,22 @@ Available actions:
 - {"action":"addClass","selector":"#id","class":"active"}
 - {"action":"removeClass","selector":"#id","class":"active"}
 
+Additional actions:
+- {"action":"clone","selector":"#id","target":"#parent","position":"beforeend"}
+- {"action":"setText","selector":"#id","content":"new text"}
+- {"action":"setHTML","selector":"#id","content":"<p>HTML</p>"}
+
 Rules:
 - Use CSS selectors (e.g., "#canvas .card", "button.primary")
 - The root container is "#canvas"
 - Create elements inside "#canvas" unless a parent is specified
 - Always use existing elements when updating or styling
 - Never wrap the JSON in markdown code blocks
-- Respond ONLY with the JSON array`;
+- Respond ONLY with the JSON array
+
+Current DOM state inside #canvas:
+${domContext}`;
+}
 
 export interface PipelineEvent {
   type: "loading" | "generating" | "parsing" | "executing" | "done" | "error";
@@ -57,7 +72,10 @@ function emit(event: PipelineEvent): void {
   subscribers.forEach((cb) => cb(event));
 }
 
-export async function processPrompt(userInput: string): Promise<void> {
+export async function processPrompt(
+  userInput: string,
+  history: { role: "user" | "assistant"; content: string }[] = [],
+): Promise<void> {
   if (!canvasElement) {
     emit({ type: "error", message: "Canvas not initialized" });
     return;
@@ -79,9 +97,17 @@ export async function processPrompt(userInput: string): Promise<void> {
   }
 
   emit({ type: "generating", message: "Generating..." });
+
+  const systemPrompt = buildSystemPrompt(canvasElement);
+  const messages: ChatMessage[] = [
+    { role: "system", content: systemPrompt },
+    ...history,
+    { role: "user", content: userInput },
+  ];
+
   let actions: DomActionType[];
   try {
-    actions = await generateActions(userInput, SYSTEM_PROMPT);
+    actions = await generateActions(messages);
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     emit({ type: "error", message: `Generation failed: ${msg}` });
