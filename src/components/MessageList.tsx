@@ -22,9 +22,10 @@ export function MessageList({ messages }: MessageListProps) {
   if (messages.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center h-full text-center p-8">
-        <p className="text-zinc-400 dark:text-zinc-500 text-sm mb-2">Welcome to OpenSite</p>
-        <p className="text-zinc-400 dark:text-zinc-500 text-xs">
-          Type a prompt below to start building your UI.
+        <p className="text-text-muted text-sm mb-2">Welcome to OpenSite</p>
+        <p className="text-text-muted text-xs max-w-xs">
+          Type a prompt below to build a UI. Try <span className="text-accent">&ldquo;create a login form&rdquo;</span> or{" "}
+          <span className="text-accent">&ldquo;make a red button&rdquo;</span>.
         </p>
       </div>
     );

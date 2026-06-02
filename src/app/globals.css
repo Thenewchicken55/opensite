@@ -3,4 +3,38 @@
 @theme inline {
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --color-canvas: #0a0a0f;
+  --color-panel: #12121a;
+  --color-border: #1f1f2e;
+  --color-surface: #1a1a28;
+  --color-text-primary: #e4e4ed;
+  --color-text-secondary: #8888a0;
+  --color-text-muted: #555570;
+  --color-accent: #6366f1;
+  --color-accent-hover: #818cf8;
+  --color-accent-bg: rgba(99, 102, 241, 0.1);
+}
+
+html {
+  background-color: #0a0a0f;
+  color: #e4e4ed;
+}
+
+body {
+  background-color: #0a0a0f;
+}
+
+/* Custom scrollbars for dark theme */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #0a0a0f;
+}
+::-webkit-scrollbar-thumb {
+  background: #1f1f2e;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #2f2f42;
 }

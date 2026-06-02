@@ -1,5 +1,7 @@
 import { CreateMLCEngine, type MLCEngine } from "@mlc-ai/web-llm";
 import type { ChatCompletionMessageParam } from "@mlc-ai/web-llm";
+import { generateMock } from "./mock-llm";
+import type { DomActionType } from "./schema";
 
 const MODEL_ID = "Qwen2.5-1.5B-Instruct-q4f16_1-MLC";
 
@@ -10,12 +12,32 @@ let engine: MLCEngine | null = null;
 let state: ModelState = "loading";
 let errorMessage: string | null = null;
 
+export type Backend = "webllm" | "mock";
+
+export async function detectBackend(): Promise<Backend> {
+  if (typeof navigator === "undefined") return "mock";
+  const gpu = navigator as any;
+  try {
+    const adapter = await gpu.gpu?.requestAdapter?.();
+    if (adapter) return "webllm";
+  } catch {}
+  return "mock";
+}
+
 export function getState(): ModelState {
   return state;
 }
 
 export function getErrorMessage(): string | null {
   return errorMessage;
+}
+
+let backendCache: Backend | null = null;
+
+export async function getBackend(): Promise<Backend> {
+  if (backendCache) return backendCache;
+  backendCache = await detectBackend();
+  return backendCache;
 }
 
 export async function initModel(onProgress?: ProgressCallback): Promise<void> {
@@ -40,7 +62,13 @@ export async function initModel(onProgress?: ProgressCallback): Promise<void> {
   }
 }
 
-export async function generate(prompt: string, systemPrompt?: string): Promise<string> {
+export async function generateActions(prompt: string, systemPrompt?: string): Promise<DomActionType[]> {
+  const backend = await getBackend();
+
+  if (backend === "mock") {
+    return generateMock(prompt);
+  }
+
   if (!engine) throw new Error("Model not initialized");
 
   const messages: ChatCompletionMessageParam[] = [];
@@ -56,11 +84,17 @@ export async function generate(prompt: string, systemPrompt?: string): Promise<s
     top_p: 0.9,
   });
 
-  return reply.choices[0]?.message?.content ?? "";
+  const raw = reply.choices[0]?.message?.content ?? "";
+  const cleaned = raw
+    .replace(/```json\s*/gi, "")
+    .replace(/```\s*$/g, "")
+    .trim();
+  return JSON.parse(cleaned);
 }
 
 export function unloadModel(): void {
   engine = null;
   state = "loading";
   errorMessage = null;
+  backendCache = null;
 }

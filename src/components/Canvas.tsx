@@ -19,12 +19,12 @@ export function Canvas() {
   };
 
   return (
-    <div className="flex flex-col h-full">
-      <div className="p-4 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between">
-        <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wider">Canvas</h2>
+    <div className="flex flex-col h-full overflow-hidden">
+      <div className="px-4 py-3 border-b border-border flex items-center justify-between shrink-0 bg-panel">
+        <h2 className="text-xs font-semibold text-text-muted uppercase tracking-wider">Canvas</h2>
         <button
           onClick={handleReset}
-          className="text-xs text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300"
+          className="text-xs text-text-muted hover:text-text-secondary transition-colors"
         >
           Clear
         </button>

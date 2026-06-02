@@ -1,6 +1,6 @@
 import { ActionList, type DomActionType } from "./schema";
 import { executeAll } from "./interpreter";
-import { generate, initModel } from "./llm";
+import { generateActions, initModel, getBackend } from "./llm";
 import { takeSnapshot, restoreSnapshot } from "./history";
 
 const SYSTEM_PROMPT = `You are a DOM agent. You control a web page by outputting structured JSON actions.
@@ -62,40 +62,28 @@ export async function processPrompt(userInput: string): Promise<void> {
     return;
   }
 
-  emit({ type: "loading", message: "Initializing model..." });
-  try {
-    await initModel();
-  } catch {
-    emit({ type: "error", message: "Failed to load model. Check WebGPU support." });
-    return;
+  const backend = await getBackend();
+
+  if (backend === "webllm") {
+    emit({ type: "loading", message: "Initializing model..." });
+    try {
+      await initModel();
+    } catch {
+      emit({ type: "error", message: "Failed to load model. Check WebGPU support." });
+      return;
+    }
   }
 
   emit({ type: "generating", message: "Generating..." });
-  let raw: string;
+  let actions: DomActionType[];
   try {
-    raw = await generate(userInput, SYSTEM_PROMPT);
+    actions = await generateActions(userInput, SYSTEM_PROMPT);
   } catch (err) {
     emit({ type: "error", message: `Generation failed: ${err instanceof Error ? err.message : String(err)}` });
     return;
   }
 
-  emit({ type: "parsing", message: "Parsing actions..." });
-  let json: unknown;
-  try {
-    const cleaned = raw
-      .replace(/```json\s*/gi, "")
-      .replace(/```\s*$/g, "")
-      .trim();
-    json = JSON.parse(cleaned);
-  } catch {
-    emit({
-      type: "error",
-      message: "Model did not return valid JSON. Try rephrasing your prompt.",
-    });
-    return;
-  }
-
-  const result = ActionList.safeParse(json);
+  const result = ActionList.safeParse(actions);
   if (!result.success) {
     emit({
       type: "error",
@@ -107,18 +95,18 @@ export async function processPrompt(userInput: string): Promise<void> {
     return;
   }
 
-  const actions = result.data;
+  const validated = result.data;
 
-  emit({ type: "executing", message: `Executing ${actions.length} actions...`, actions });
+  emit({ type: "executing", message: `Executing ${validated.length} actions...`, actions: validated });
 
   const snapshot = takeSnapshot(canvasElement);
   undoStack.push(snapshot);
   redoStack = [];
 
-  const outcome = executeAll(actions, canvasElement);
+  const outcome = executeAll(validated, canvasElement);
   emit({
     type: "done",
-    actions,
+    actions: validated,
     errors: outcome.errors.length > 0 ? outcome.errors : undefined,
   });
 }

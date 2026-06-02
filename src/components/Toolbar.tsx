@@ -42,11 +42,11 @@ export function Toolbar() {
   const canRedo = getRedoCount() > 0;
 
   return (
-    <div className="flex items-center gap-2 px-4 py-2 border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/50">
+    <div className="flex items-center gap-2 px-4 py-2 border-b border-border bg-panel shrink-0">
       <button
         onClick={handleUndo}
         disabled={!canUndo}
-        className="px-3 py-1 text-xs font-medium rounded bg-zinc-200 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-300 dark:hover:bg-zinc-700 disabled:opacity-30 disabled:cursor-not-allowed"
+        className="px-3 py-1 text-xs font-medium rounded bg-surface text-text-secondary hover:bg-border disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
         title="Undo (Ctrl+Z)"
       >
         Undo
@@ -54,12 +54,12 @@ export function Toolbar() {
       <button
         onClick={handleRedo}
         disabled={!canRedo}
-        className="px-3 py-1 text-xs font-medium rounded bg-zinc-200 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-300 dark:hover:bg-zinc-700 disabled:opacity-30 disabled:cursor-not-allowed"
+        className="px-3 py-1 text-xs font-medium rounded bg-surface text-text-secondary hover:bg-border disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
         title="Redo (Ctrl+Shift+Z)"
       >
         Redo
       </button>
-      <span className="text-xs text-zinc-400 ml-auto">
+      <span className="text-[10px] text-text-muted ml-auto tracking-wide">
         Ctrl+Z to undo &middot; Ctrl+Shift+Z to redo
       </span>
     </div>
