@@ -26,13 +26,18 @@ function saveHistory(messages: ChatMessage[]): void {
 }
 
 export function ChatPanel() {
-  const [messages, setMessages] = useState<ChatMessage[]>(loadHistory);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [backend, setBackend] = useState<"detecting" | "webllm" | "server" | "mock">("detecting");
   const [settingsOpen, setSettingsOpen] = useState(false);
 
   useEffect(() => {
     detectBackend().then(setBackend);
+  }, []);
+
+  useEffect(() => {
+    const saved = loadHistory();
+    if (saved.length > 0) setMessages(saved);
   }, []);
 
   useEffect(() => {
