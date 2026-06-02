@@ -65,12 +65,13 @@ export async function processPrompt(userInput: string): Promise<void> {
   const backend = await getBackend();
 
   if (backend === "webllm") {
-    emit({ type: "loading", message: "Initializing model..." });
-    try {
-      await initModel();
-    } catch {
-      emit({ type: "error", message: "Failed to load model. Check WebGPU support." });
-      return;
+    emit({ type: "loading", message: "Loading model..." });
+    const loaded = await initModel();
+    if (!loaded) {
+      emit({
+        type: "error",
+        message: "WebGPU ran out of memory. Falling back to mock mode. Prompts will generate simulated UI actions instead.",
+      });
     }
   }
 

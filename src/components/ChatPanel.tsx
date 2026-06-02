@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { MessageList, type ChatMessage } from "./MessageList";
 import { PromptInput } from "./PromptInput";
 import { processPrompt, subscribe } from "../lib/pipeline";
-import { detectBackend } from "../lib/llm";
+import { detectBackend, getEffectiveBackend } from "../lib/llm";
 
 export function ChatPanel() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -50,6 +50,7 @@ export function ChatPanel() {
     });
 
     await processPrompt(text);
+    setBackend(getEffectiveBackend());
     unsub();
   };
 

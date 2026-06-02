@@ -4,8 +4,9 @@ import { generateMock } from "./mock-llm";
 import type { DomActionType } from "./schema";
 
 const MODEL_ID = "Qwen2.5-1.5B-Instruct-q4f16_1-MLC";
+const FALLBACK_MODEL_ID = "Phi-3-mini-4k-instruct-q4f16_1-MLC";
 
-type ModelState = "loading" | "ready" | "error";
+type ModelState = "loading" | "ready" | "error" | "mock";
 type ProgressCallback = (progress: number, text: string) => void;
 
 let engine: MLCEngine | null = null;
@@ -40,26 +41,47 @@ export async function getBackend(): Promise<Backend> {
   return backendCache;
 }
 
-export async function initModel(onProgress?: ProgressCallback): Promise<void> {
-  if (engine) return;
+export function getEffectiveBackend(): Backend {
+  return backendCache ?? "mock";
+}
+
+function isGpuError(err: unknown): boolean {
+  const msg = String(err).toLowerCase();
+  return msg.includes("device was lost") || msg.includes("gpu") || msg.includes("webgpu");
+}
+
+export async function initModel(onProgress?: ProgressCallback): Promise<boolean> {
+  if (engine) return true;
 
   state = "loading";
   errorMessage = null;
 
-  try {
-    engine = await CreateMLCEngine(MODEL_ID, {
-      initProgressCallback: (report) => {
-        const progress = report.progress ?? 0;
-        const text = report.text ?? "";
-        onProgress?.(progress, text);
-      },
-    });
-    state = "ready";
-  } catch (err) {
-    state = "error";
-    errorMessage = err instanceof Error ? err.message : String(err);
-    throw err;
-  }
+  const tryModel = async (modelId: string): Promise<boolean> => {
+    try {
+      engine = await CreateMLCEngine(modelId, {
+        initProgressCallback: (report) => {
+          const progress = report.progress ?? 0;
+          const text = report.text ?? "";
+          onProgress?.(progress, text);
+        },
+      });
+      state = "ready";
+      return true;
+    } catch (err) {
+      if (isGpuError(err)) {
+        return false;
+      }
+      throw err;
+    }
+  };
+
+  if (await tryModel(MODEL_ID)) return true;
+  if (await tryModel(FALLBACK_MODEL_ID)) return true;
+
+  backendCache = "mock";
+  state = "mock";
+  errorMessage = "WebGPU ran out of memory. Falling back to mock mode.";
+  return false;
 }
 
 export async function generateActions(prompt: string, systemPrompt?: string): Promise<DomActionType[]> {
