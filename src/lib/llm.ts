@@ -127,7 +127,7 @@ export async function generateActions(
     return JSON.parse(cleaned);
   } catch {
     throw new Error(
-      `Model returned non-JSON response. Try lowering the temperature or using a different model. Raw: ${raw.slice(0, 200)}`,
+      `Model returned non-JSON response. Try lowering the temperature or using a different model. Raw: ${raw.slice(0, 500)}`,
     );
   }
 }

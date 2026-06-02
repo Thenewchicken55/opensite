@@ -37,7 +37,7 @@ export function saveServerConfig(config: ServerLLMConfig): void {
 }
 
 export function extractJson(raw: string): string {
-  let cleaned = raw.trim();
+  const cleaned = raw.trim();
 
   // Try code block with array first
   const arrayBlock = cleaned.match(/```(?:json)?\s*(\[[\s\S]*?\])\s*```/);
@@ -51,30 +51,147 @@ export function extractJson(raw: string): string {
   const actionsMatch = cleaned.match(/"actions"\s*:\s*(\[[\s\S]*?\])/);
   if (actionsMatch) return actionsMatch[1];
 
-  // Find outermost array brackets
-  const arrayStart = cleaned.indexOf("[");
-  const arrayEnd = cleaned.lastIndexOf("]");
-  if (arrayStart !== -1 && arrayEnd > arrayStart) {
-    return cleaned.slice(arrayStart, arrayEnd + 1);
+  // Find outermost array brackets with depth tracking
+  // This handles truncated or partially-broken JSON
+  const startsAt = cleaned.indexOf("[");
+  if (startsAt === -1) {
+    // No array, try single object
+    return wrapFirstObject(cleaned) ?? cleaned;
   }
 
-  // Find outermost object brackets (single action, wrap in array)
-  // Only if we can find a complete matched pair
-  let depth = 0;
-  let objStart = -1;
-  for (let i = 0; i < cleaned.length; i++) {
-    if (cleaned[i] === "{") {
-      if (depth === 0) objStart = i;
-      depth++;
-    } else if (cleaned[i] === "}") {
-      depth--;
-      if (depth === 0 && objStart !== -1) {
-        return `[${cleaned.slice(objStart, i + 1)}]`;
+  // Walk the array and track bracket/string depth to find the true end
+  let i = startsAt;
+  let arrayDepth = 0;
+  let inString = false;
+  let escape = false;
+  let validEnd = -1;
+
+  while (i < cleaned.length) {
+    const ch = cleaned[i];
+    if (escape) {
+      escape = false;
+    } else if (inString) {
+      if (ch === '\\') {
+        escape = true;
+      } else if (ch === '"') {
+        inString = false;
       }
+    } else {
+      if (ch === '"') {
+        inString = true;
+      } else if (ch === '[') {
+        arrayDepth++;
+      } else if (ch === ']') {
+        arrayDepth--;
+        if (arrayDepth === 0) {
+          validEnd = i;
+          break;
+        }
+      } else if (ch === '{') {
+        // Skip to matching } — handles objects inside the array
+        const objEnd = findMatchingBrace(cleaned, i);
+        if (objEnd === -1) break; // truncated object, stop here
+        i = objEnd;
+      }
+    }
+    i++;
+  }
+
+  if (validEnd !== -1) {
+    return cleaned.slice(startsAt, validEnd + 1);
+  }
+
+  // If array is incomplete, try to extract what we can
+  if (arrayDepth > 0) {
+    // Find the last complete object inside the partial array
+    const partial = cleaned.slice(startsAt);
+    const lastObjEnd = findLastCompleteObject(partial);
+    if (lastObjEnd !== -1) {
+      return partial.slice(0, lastObjEnd + 1) + "]";
     }
   }
 
-  return cleaned;
+  return wrapFirstObject(cleaned) ?? cleaned;
+}
+
+/** Find matching closing brace from a position, handling strings and nesting */
+function findMatchingBrace(s: string, start: number): number {
+  let depth = 1;
+  let inStr = false;
+  let esc = false;
+  let i = start + 1;
+  while (i < s.length) {
+    const ch = s[i];
+    if (esc) {
+      esc = false;
+    } else if (inStr) {
+      if (ch === '\\') esc = true;
+      else if (ch === '"') inStr = false;
+    } else {
+      if (ch === '"') inStr = true;
+      else if (ch === '{') depth++;
+      else if (ch === '}') {
+        depth--;
+        if (depth === 0) return i;
+      }
+    }
+    i++;
+  }
+  return -1;
+}
+
+/** Wrap the first complete top-level object in an array */
+function wrapFirstObject(s: string): string | null {
+  let depth = 0;
+  let objStart = -1;
+  let inStr = false;
+  let esc = false;
+  for (let i = 0; i < s.length; i++) {
+    const ch = s[i];
+    if (esc) {
+      esc = false;
+    } else if (inStr) {
+      if (ch === '\\') esc = true;
+      else if (ch === '"') inStr = false;
+    } else {
+      if (ch === '"') inStr = true;
+      else if (ch === '{') {
+        if (depth === 0) objStart = i;
+        depth++;
+      } else if (ch === '}') {
+        depth--;
+        if (depth === 0 && objStart !== -1) {
+          return `[${s.slice(objStart, i + 1)}]`;
+        }
+      }
+    }
+  }
+  return null;
+}
+
+/** Find the last complete object in a string (for partial array recovery) */
+function findLastCompleteObject(s: string): number {
+  let depth = 0;
+  let inStr = false;
+  let esc = false;
+  let lastEnd = -1;
+  for (let i = 0; i < s.length; i++) {
+    const ch = s[i];
+    if (esc) {
+      esc = false;
+    } else if (inStr) {
+      if (ch === '\\') esc = true;
+      else if (ch === '"') inStr = false;
+    } else {
+      if (ch === '"') inStr = true;
+      else if (ch === '{') depth++;
+      else if (ch === '}') {
+        depth--;
+        if (depth === 0) lastEnd = i;
+      }
+    }
+  }
+  return lastEnd;
 }
 
 export async function generateWithServer(
@@ -85,7 +202,7 @@ export async function generateWithServer(
     model: config.model,
     messages,
     temperature: config.temperature,
-    max_tokens: 8192,
+    max_tokens: 16384,
     top_p: 0.9,
   };
 
@@ -114,15 +231,8 @@ export async function generateWithServer(
   try {
     return JSON.parse(cleaned);
   } catch {
-    const trimmed = cleaned
-      .replace(/^[^[]*/, "")
-      .replace(/[^\]]*$/, "");
-    try {
-      return JSON.parse(trimmed);
-    } catch {
-      throw new Error(
-        `Model returned non-JSON response. Try lowering the temperature or using a different model. Response preview: ${raw.slice(0, 200)}`,
-      );
-    }
+    throw new Error(
+      `Model returned non-JSON response. Try lowering the temperature or switching to a larger model. Preview: ${raw.slice(0, 500)}`,
+    );
   }
 }

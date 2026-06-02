@@ -39,7 +39,8 @@ AVAILABLE ACTIONS:
 IMPORTANT GUIDELINES:
 - Use "clear" as the first action to reset the canvas before building a new page.
 - Use "setHTML" with selector "#canvas" to create rich content with full HTML.
-- For images, use {"action":"create","tag":"img","attributes":{"src":"URL","alt":"text","style":"width:100%;max-width:300px"}} — the src attribute works when set in attributes.
+- In "setHTML" content, use single quotes for HTML attributes (e.g., <div class='container'> not <div class="container">) to avoid breaking the JSON.
+- For images, use {"action":"create","tag":"img","attributes":{"src":"URL","alt":"text","style":"width:100%;max-width:300px"}}.
 - Be thorough and create complete, styled pages with multiple sections, headings, images, and proper layout.
 - The root container is "#canvas". Use CSS selectors like "#canvas .card".
 - Always respond with a JSON array, even if empty.
