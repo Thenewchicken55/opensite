@@ -55,7 +55,8 @@ describe("pipeline", () => {
     unsub();
   });
 
-  it("emits error when canvas not set", async () => {
+  it("emits error when canvas not found", async () => {
+    canvas.remove();
     setCanvas(null as unknown as HTMLElement);
 
     const errors: string[] = [];

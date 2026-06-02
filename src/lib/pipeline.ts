@@ -89,8 +89,13 @@ export async function processPrompt(
     return;
   }
   if (!canvasElement) {
-    emit({ type: "error", message: "Canvas not initialized" });
-    return;
+    const found = document.querySelector<HTMLElement>("#canvas");
+    if (found) {
+      canvasElement = found;
+    } else {
+      emit({ type: "error", message: "Canvas not initialized" });
+      return;
+    }
   }
 
   isProcessing = true;
