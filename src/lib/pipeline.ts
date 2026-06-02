@@ -56,6 +56,8 @@ let canvasElement: HTMLElement | null = null;
 const undoStack: string[] = [];
 let redoStack: string[] = [];
 let subscribers: EventCallback[] = [];
+let isProcessing = false;
+let pendingPrompt: (() => void) | null = null;
 
 export function setCanvas(el: HTMLElement): void {
   canvasElement = el;
@@ -76,70 +78,81 @@ export async function processPrompt(
   userInput: string,
   history: { role: "user" | "assistant"; content: string }[] = [],
 ): Promise<void> {
+  if (isProcessing) {
+    emit({ type: "error", message: "Already processing a prompt. Please wait." });
+    return;
+  }
   if (!canvasElement) {
     emit({ type: "error", message: "Canvas not initialized" });
     return;
   }
 
-  const backend = await getBackend();
+  isProcessing = true;
+  const done = () => { isProcessing = false; };
 
-  if (backend === "webllm") {
-    emit({ type: "loading", message: "Loading model..." });
-    const loaded = await initModel();
-    if (!loaded) {
+  try {
+    const backend = await getBackend();
+
+    if (backend === "webllm") {
+      emit({ type: "loading", message: "Loading model..." });
+      const loaded = await initModel();
+      if (!loaded) {
+        emit({
+          type: "error",
+          message:
+            "WebLLM failed to load (WebGPU unavailable). Go to Settings and switch to a remote server backend.",
+        });
+        return;
+      }
+    }
+
+    emit({ type: "generating", message: "Generating..." });
+
+    const systemPrompt = buildSystemPrompt(canvasElement);
+    const messages: ChatMessage[] = [
+      { role: "system", content: systemPrompt },
+      ...history,
+      { role: "user", content: userInput },
+    ];
+
+    let actions: DomActionType[];
+    try {
+      actions = await generateActions(messages);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      emit({ type: "error", message: `Generation failed: ${msg}` });
+      return;
+    }
+
+    const result = ActionList.safeParse(actions);
+    if (!result.success) {
       emit({
         type: "error",
-        message:
-          "WebLLM failed to load (WebGPU unavailable). Go to Settings and switch to a remote server backend.",
+        message: `Invalid action structure: ${result.error.issues
+          .slice(0, 3)
+          .map((i) => i.message)
+          .join("; ")}`,
       });
       return;
     }
-  }
 
-  emit({ type: "generating", message: "Generating..." });
+    const validated = result.data;
 
-  const systemPrompt = buildSystemPrompt(canvasElement);
-  const messages: ChatMessage[] = [
-    { role: "system", content: systemPrompt },
-    ...history,
-    { role: "user", content: userInput },
-  ];
+    emit({ type: "executing", message: `Executing ${validated.length} actions...`, actions: validated });
 
-  let actions: DomActionType[];
-  try {
-    actions = await generateActions(messages);
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    emit({ type: "error", message: `Generation failed: ${msg}` });
-    return;
-  }
+    const snapshot = takeSnapshot(canvasElement);
+    undoStack.push(snapshot);
+    redoStack = [];
 
-  const result = ActionList.safeParse(actions);
-  if (!result.success) {
+    const outcome = executeAll(validated, canvasElement);
     emit({
-      type: "error",
-      message: `Invalid action structure: ${result.error.issues
-        .slice(0, 3)
-        .map((i) => i.message)
-        .join("; ")}`,
+      type: "done",
+      actions: validated,
+      errors: outcome.errors.length > 0 ? outcome.errors : undefined,
     });
-    return;
+  } finally {
+    done();
   }
-
-  const validated = result.data;
-
-  emit({ type: "executing", message: `Executing ${validated.length} actions...`, actions: validated });
-
-  const snapshot = takeSnapshot(canvasElement);
-  undoStack.push(snapshot);
-  redoStack = [];
-
-  const outcome = executeAll(validated, canvasElement);
-  emit({
-    type: "done",
-    actions: validated,
-    errors: outcome.errors.length > 0 ? outcome.errors : undefined,
-  });
 }
 
 export function undo(canvas: HTMLElement): void {
