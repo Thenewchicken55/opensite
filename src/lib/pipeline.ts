@@ -25,6 +25,7 @@ Rules:
 - The root container is "#canvas"
 - Create elements inside "#canvas" unless a parent is specified
 - Always use existing elements when updating or styling
+- Never wrap the JSON in markdown code blocks
 - Respond ONLY with the JSON array`;
 
 export interface PipelineEvent {
@@ -37,7 +38,7 @@ export interface PipelineEvent {
 type EventCallback = (event: PipelineEvent) => void;
 
 let canvasElement: HTMLElement | null = null;
-let undoStack: string[] = [];
+const undoStack: string[] = [];
 let redoStack: string[] = [];
 let subscribers: EventCallback[] = [];
 
@@ -70,8 +71,10 @@ export async function processPrompt(userInput: string): Promise<void> {
     if (!loaded) {
       emit({
         type: "error",
-        message: "WebGPU ran out of memory. Falling back to mock mode. Prompts will generate simulated UI actions instead.",
+        message:
+          "WebLLM failed to load (WebGPU unavailable). Go to Settings and switch to a remote server backend.",
       });
+      return;
     }
   }
 
@@ -80,7 +83,8 @@ export async function processPrompt(userInput: string): Promise<void> {
   try {
     actions = await generateActions(userInput, SYSTEM_PROMPT);
   } catch (err) {
-    emit({ type: "error", message: `Generation failed: ${err instanceof Error ? err.message : String(err)}` });
+    const msg = err instanceof Error ? err.message : String(err);
+    emit({ type: "error", message: `Generation failed: ${msg}` });
     return;
   }
 

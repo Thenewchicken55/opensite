@@ -3,13 +3,15 @@
 import { useState, useEffect } from "react";
 import { MessageList, type ChatMessage } from "./MessageList";
 import { PromptInput } from "./PromptInput";
+import { SettingsModal } from "./SettingsModal";
 import { processPrompt, subscribe } from "../lib/pipeline";
 import { detectBackend, getEffectiveBackend } from "../lib/llm";
 
 export function ChatPanel() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [backend, setBackend] = useState<"detecting" | "webllm" | "mock">("detecting");
+  const [backend, setBackend] = useState<"detecting" | "webllm" | "server" | "mock">("detecting");
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   useEffect(() => {
     detectBackend().then(setBackend);
@@ -60,17 +62,43 @@ export function ChatPanel() {
     if (canvas) canvas.innerHTML = "";
   };
 
+  const handleSettingsSaved = () => {
+    setBackend("detecting");
+    detectBackend().then(setBackend);
+  };
+
+  const backendLabel =
+    backend === "detecting"
+      ? "..."
+      : backend === "webllm"
+        ? "WebLLM"
+        : backend === "server"
+          ? "Server"
+          : "Mock";
+
+  const backendColor =
+    backend === "webllm"
+      ? "bg-green-900/30 text-green-400"
+      : backend === "server"
+        ? "bg-blue-900/30 text-blue-400"
+        : backend === "mock"
+          ? "bg-amber-900/30 text-amber-400"
+          : "bg-zinc-800 text-text-muted";
+
   return (
     <div className="flex flex-col h-full overflow-hidden">
       <div className="px-4 py-3 border-b border-border flex items-center justify-between shrink-0">
         <h2 className="text-xs font-semibold text-text-muted uppercase tracking-wider">Chat</h2>
         <div className="flex items-center gap-2">
-          <span className={`text-[10px] px-1.5 py-0.5 rounded ${
-            backend === "webllm" ? "bg-green-900/30 text-green-400" :
-            backend === "mock" ? "bg-amber-900/30 text-amber-400" :
-            "bg-zinc-800 text-text-muted"
-          }`}>
-            {backend === "detecting" ? "..." : backend === "webllm" ? "WebLLM" : "Mock"}
+          <button
+            onClick={() => setSettingsOpen(true)}
+            className="text-xs text-text-muted hover:text-text-secondary transition-colors"
+            title="Settings"
+          >
+            Settings
+          </button>
+          <span className={`text-[10px] px-1.5 py-0.5 rounded ${backendColor}`}>
+            {backendLabel}
           </span>
           <button
             onClick={handleReset}
@@ -90,6 +118,13 @@ export function ChatPanel() {
           </p>
         )}
       </div>
+      <SettingsModal
+        open={settingsOpen}
+        onClose={() => {
+          setSettingsOpen(false);
+          handleSettingsSaved();
+        }}
+      />
     </div>
   );
 }

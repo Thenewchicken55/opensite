@@ -1,28 +1,44 @@
 import { CreateMLCEngine, type MLCEngine } from "@mlc-ai/web-llm";
 import type { ChatCompletionMessageParam } from "@mlc-ai/web-llm";
 import { generateMock } from "./mock-llm";
+import { generateWithServer, loadServerConfig } from "./server-llm";
 import type { DomActionType } from "./schema";
 
 const MODEL_ID = "Qwen2.5-1.5B-Instruct-q4f16_1-MLC";
 const FALLBACK_MODEL_ID = "Phi-3-mini-4k-instruct-q4f16_1-MLC";
 
-type ModelState = "loading" | "ready" | "error" | "mock";
+export type Backend = "webllm" | "server" | "mock";
+
+type ModelState = "loading" | "ready" | "error" | "unavailable";
 type ProgressCallback = (progress: number, text: string) => void;
 
 let engine: MLCEngine | null = null;
 let state: ModelState = "loading";
 let errorMessage: string | null = null;
+let backendPreference: Backend = "webllm";
 
-export type Backend = "webllm" | "mock";
+export function setBackendPreference(b: Backend): void {
+  backendPreference = b;
+  backendCache = null;
+}
+
+export function getBackendPreference(): Backend {
+  return backendPreference;
+}
 
 export async function detectBackend(): Promise<Backend> {
-  if (typeof navigator === "undefined") return "mock";
-  const gpu = navigator as any;
-  try {
-    const adapter = await gpu.gpu?.requestAdapter?.();
-    if (adapter) return "webllm";
-  } catch {}
-  return "mock";
+  if (typeof navigator === "undefined") return "server";
+
+  if (backendPreference === "webllm") {
+    const gpu = navigator as unknown as { gpu?: { requestAdapter?: () => Promise<unknown> } };
+    try {
+      const adapter = await gpu.gpu?.requestAdapter?.();
+      if (adapter) return "webllm";
+    } catch {}
+    return "server";
+  }
+
+  return backendPreference;
 }
 
 export function getState(): ModelState {
@@ -42,7 +58,7 @@ export async function getBackend(): Promise<Backend> {
 }
 
 export function getEffectiveBackend(): Backend {
-  return backendCache ?? "mock";
+  return backendCache ?? backendPreference;
 }
 
 function isGpuError(err: unknown): boolean {
@@ -78,17 +94,24 @@ export async function initModel(onProgress?: ProgressCallback): Promise<boolean>
   if (await tryModel(MODEL_ID)) return true;
   if (await tryModel(FALLBACK_MODEL_ID)) return true;
 
-  backendCache = "mock";
-  state = "mock";
-  errorMessage = "WebGPU ran out of memory. Falling back to mock mode.";
+  state = "unavailable";
+  errorMessage = "WebGPU ran out of memory. WebLLM is unavailable.";
   return false;
 }
 
-export async function generateActions(prompt: string, systemPrompt?: string): Promise<DomActionType[]> {
+export async function generateActions(
+  prompt: string,
+  systemPrompt?: string,
+): Promise<DomActionType[]> {
   const backend = await getBackend();
 
   if (backend === "mock") {
     return generateMock(prompt);
+  }
+
+  if (backend === "server") {
+    const config = loadServerConfig();
+    return generateWithServer(prompt, systemPrompt ?? "", config);
   }
 
   if (!engine) throw new Error("Model not initialized");

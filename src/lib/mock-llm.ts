@@ -1,14 +1,7 @@
 import type { DomActionType } from "./schema";
 
-function extractCSS(text: string, keyword: string): string {
-  const regex = new RegExp(`${keyword}[\\s:]+([^;\\n]+)`, "i");
-  const match = text.match(regex);
-  return match?.[1]?.trim() ?? "";
-}
-
 function parsePrompt(prompt: string): DomActionType[] {
   const lower = prompt.toLowerCase();
-  const actions: DomActionType[] = [];
 
   const colorKeywords: Record<string, string> = {
     red: "#ef4444", blue: "#3b82f6", green: "#22c55e",
