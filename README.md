@@ -1,3 +1,7 @@
+> **⚠️ Proof of Concept — Heavily AI-generated**
+>
+> This entire codebase was written almost entirely by LLM agents (Claude/OpenCode) with human guidance. It is a **proof of concept**, not a production application. Expect sharp edges, incomplete error handling, and the occasional hallucinated feature. Use at your own risk (and fun).
+
 # OpenSite — The Prompt Becomes the UI
 
 Type stuff. Get a UI. No HTML required.
