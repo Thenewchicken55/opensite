@@ -84,9 +84,9 @@ export function ChatPanel() {
     });
 
     const history = messages
-      .filter((m) => m.role === "user" || m.role === "assistant")
+      .filter((m) => m.role === "user")
       .slice(-10)
-      .map((m) => ({ role: m.role as "user" | "assistant", content: m.content }));
+      .map((m) => ({ role: "user" as const, content: m.content }));
 
     await processPrompt(text, history);
     setBackend(getEffectiveBackend());

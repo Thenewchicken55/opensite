@@ -117,7 +117,7 @@ export async function generateActions(
   const reply = await engine.chat.completions.create({
     messages: messages as ChatCompletionMessageParam[],
     temperature: loadServerConfig().temperature,
-    max_tokens: 2048,
+    max_tokens: 8192,
     top_p: 0.9,
   });
 

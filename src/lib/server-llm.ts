@@ -47,6 +47,10 @@ export function extractJson(raw: string): string {
   const objectBlock = cleaned.match(/```(?:json)?\s*(\{[\s\S]*?\})\s*```/);
   if (objectBlock) return `[${objectBlock[1]}]`;
 
+  // Try {"actions": [...]} wrapper — extract the inner array
+  const actionsMatch = cleaned.match(/"actions"\s*:\s*(\[[\s\S]*?\])/);
+  if (actionsMatch) return actionsMatch[1];
+
   // Find outermost array brackets
   const arrayStart = cleaned.indexOf("[");
   const arrayEnd = cleaned.lastIndexOf("]");
@@ -55,10 +59,19 @@ export function extractJson(raw: string): string {
   }
 
   // Find outermost object brackets (single action, wrap in array)
-  const objStart = cleaned.indexOf("{");
-  const objEnd = cleaned.lastIndexOf("}");
-  if (objStart !== -1 && objEnd > objStart) {
-    return `[${cleaned.slice(objStart, objEnd + 1)}]`;
+  // Only if we can find a complete matched pair
+  let depth = 0;
+  let objStart = -1;
+  for (let i = 0; i < cleaned.length; i++) {
+    if (cleaned[i] === "{") {
+      if (depth === 0) objStart = i;
+      depth++;
+    } else if (cleaned[i] === "}") {
+      depth--;
+      if (depth === 0 && objStart !== -1) {
+        return `[${cleaned.slice(objStart, i + 1)}]`;
+      }
+    }
   }
 
   return cleaned;
@@ -72,7 +85,7 @@ export async function generateWithServer(
     model: config.model,
     messages,
     temperature: config.temperature,
-    max_tokens: 2048,
+    max_tokens: 8192,
     top_p: 0.9,
   };
 
