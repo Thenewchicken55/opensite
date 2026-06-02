@@ -53,4 +53,4 @@ Then in OpenSite: **Settings → Server** → defaults should just work.
 
 ## 🤝 Contributing
 
-Found a bug? Want to make the chicken wiki even better? PRs welcome.
+Found a bug? Pls I'm desperate for help, PRs welcome.
