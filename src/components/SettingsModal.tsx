@@ -103,7 +103,7 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
                   type="text"
                   value={config.model}
                   onChange={(e) => setConfig({ ...config, model: e.target.value })}
-                  placeholder="qwen2.5"
+                  placeholder="llama3.2"
                   className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text-primary placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-accent"
                 />
               </div>
@@ -111,7 +111,7 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
                 Works with any OpenAI-compatible API. For local use, run{" "}
                 <code className="text-accent">ollama serve</code> and set the URL to{" "}
                 <code className="text-accent">http://localhost:11434/v1</code>
-                with model <code className="text-accent">qwen2.5</code>.
+                with model <code className="text-accent">llama3.2</code>. Run <code className="text-accent">ollama pull llama3.2</code> if needed.
               </p>
             </div>
           )}

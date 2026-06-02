@@ -13,7 +13,7 @@ export function loadServerConfig(): ServerLLMConfig {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) return JSON.parse(raw);
   } catch {}
-  return { baseUrl: "http://localhost:11434/v1", apiKey: "ollama", model: "qwen2.5" };
+  return { baseUrl: "http://localhost:11434/v1", apiKey: "ollama", model: "llama3.2" };
 }
 
 export function saveServerConfig(config: ServerLLMConfig): void {
@@ -47,7 +47,11 @@ export async function generateWithServer(
 
   if (!res.ok) {
     const text = await res.text().catch(() => "unknown error");
-    throw new Error(`Server LLM (${res.status}): ${text}`);
+    const isModelNotFound = text.toLowerCase().includes("model") && text.toLowerCase().includes("not found");
+    const hint = isModelNotFound
+      ? `\n\nRun: ollama pull ${config.model}`
+      : "";
+    throw new Error(`Server LLM (${res.status}): ${text}${hint}`);
   }
 
   const data = await res.json();
