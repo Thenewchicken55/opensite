@@ -36,16 +36,29 @@ export function saveServerConfig(config: ServerLLMConfig): void {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(config));
 }
 
-function extractJson(raw: string): string {
+export function extractJson(raw: string): string {
   let cleaned = raw.trim();
 
-  const jsonMatch = cleaned.match(/```(?:json)?\s*(\[[\s\S]*?\])\s*```/);
-  if (jsonMatch) return jsonMatch[1];
+  // Try code block with array first
+  const arrayBlock = cleaned.match(/```(?:json)?\s*(\[[\s\S]*?\])\s*```/);
+  if (arrayBlock) return arrayBlock[1];
 
+  // Try code block with object (wrap in array)
+  const objectBlock = cleaned.match(/```(?:json)?\s*(\{[\s\S]*?\})\s*```/);
+  if (objectBlock) return `[${objectBlock[1]}]`;
+
+  // Find outermost array brackets
   const arrayStart = cleaned.indexOf("[");
   const arrayEnd = cleaned.lastIndexOf("]");
   if (arrayStart !== -1 && arrayEnd > arrayStart) {
-    cleaned = cleaned.slice(arrayStart, arrayEnd + 1);
+    return cleaned.slice(arrayStart, arrayEnd + 1);
+  }
+
+  // Find outermost object brackets (single action, wrap in array)
+  const objStart = cleaned.indexOf("{");
+  const objEnd = cleaned.lastIndexOf("}");
+  if (objStart !== -1 && objEnd > objStart) {
+    return `[${cleaned.slice(objStart, objEnd + 1)}]`;
   }
 
   return cleaned;
@@ -91,6 +104,12 @@ export async function generateWithServer(
     const trimmed = cleaned
       .replace(/^[^[]*/, "")
       .replace(/[^\]]*$/, "");
-    return JSON.parse(trimmed);
+    try {
+      return JSON.parse(trimmed);
+    } catch {
+      throw new Error(
+        `Model returned non-JSON response. Try lowering the temperature or using a different model. Response preview: ${raw.slice(0, 200)}`,
+      );
+    }
   }
 }

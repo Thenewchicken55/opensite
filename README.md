@@ -42,7 +42,7 @@ Click **Settings** in the app to choose your backend:
    ```bash
    ollama pull llama3.2
    ```
-3. Make sure Ollama is running (it usually starts automatically as a background service after install; if not, run `ollama serve`). It serves on **port 11434** by default — you don't need to pick a port.
+3. **Ollama is already running.** On Windows, Ollama installs as a background service and starts on boot (look for the llama icon in your system tray). It listens on **port 11434** by default. If you see `Error: listen tcp 127.0.0.1:11434: bind: Only one usage of each socket address` when running `ollama serve`, that means Ollama is already running — you're good.
 4. In OpenSite: **Settings → Server** → defaults are already set to `http://localhost:11434/v1` with model `llama3.2`. Just click **Save** and type your prompt.
 
 > **The Base URL field** is `http://localhost:11434/v1`. The `/v1` at the end isn't a port — it's the API path (OpenAI-compatible endpoints all use `/v1`). Port 11434 is Ollama's default; you'd only change it if you configured Ollama to use a different port.

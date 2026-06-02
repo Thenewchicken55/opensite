@@ -1,7 +1,7 @@
 import { CreateMLCEngine, type MLCEngine } from "@mlc-ai/web-llm";
 import type { ChatCompletionMessageParam } from "@mlc-ai/web-llm";
 import { generateMock } from "./mock-llm";
-import { generateWithServer, loadServerConfig } from "./server-llm";
+import { generateWithServer, loadServerConfig, extractJson } from "./server-llm";
 import type { DomActionType } from "./schema";
 
 const MODEL_ID = "Qwen2.5-1.5B-Instruct-q4f16_1-MLC";
@@ -122,11 +122,14 @@ export async function generateActions(
   });
 
   const raw = reply.choices[0]?.message?.content ?? "";
-  const cleaned = raw
-    .replace(/```json\s*/gi, "")
-    .replace(/```\s*$/g, "")
-    .trim();
-  return JSON.parse(cleaned);
+  const cleaned = extractJson(raw);
+  try {
+    return JSON.parse(cleaned);
+  } catch {
+    throw new Error(
+      `Model returned non-JSON response. Try lowering the temperature or using a different model. Raw: ${raw.slice(0, 200)}`,
+    );
+  }
 }
 
 export function unloadModel(): void {

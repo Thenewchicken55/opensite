@@ -11,7 +11,7 @@ function buildSystemPrompt(canvas: HTMLElement): string {
 
   return `You are a DOM agent. You control a web page by outputting structured JSON actions.
 
-You MUST respond with ONLY a JSON array of action objects. No prose, no markdown, no explanation.
+Respond with a JSON array of action objects. If nothing needs to change, respond with [].
 
 Available actions:
 - {"action":"create","tag":"div","parent":"#selector","content":"text","attributes":{"id":"myid"}}
@@ -25,8 +25,6 @@ Available actions:
 - {"action":"removeAttr","selector":"#id","name":"data-value"}
 - {"action":"addClass","selector":"#id","class":"active"}
 - {"action":"removeClass","selector":"#id","class":"active"}
-
-Additional actions:
 - {"action":"clone","selector":"#id","target":"#parent","position":"beforeend"}
 - {"action":"setText","selector":"#id","content":"new text"}
 - {"action":"setHTML","selector":"#id","content":"<p>HTML</p>"}
@@ -36,8 +34,6 @@ Rules:
 - The root container is "#canvas"
 - Create elements inside "#canvas" unless a parent is specified
 - Always use existing elements when updating or styling
-- Never wrap the JSON in markdown code blocks
-- Respond ONLY with the JSON array
 
 Current DOM state inside #canvas:
 ${domContext}`;
@@ -124,14 +120,20 @@ export async function processPrompt(
       return;
     }
 
+    if (!Array.isArray(actions) || actions.length === 0) {
+      emit({ type: "done", actions: [] });
+      return;
+    }
+
     const result = ActionList.safeParse(actions);
     if (!result.success) {
+      const msg = result.error.issues
+        .slice(0, 2)
+        .map((i) => i.message)
+        .join("; ");
       emit({
         type: "error",
-        message: `Invalid action structure: ${result.error.issues
-          .slice(0, 3)
-          .map((i) => i.message)
-          .join("; ")}`,
+        message: `Invalid action structure: ${msg}`,
       });
       return;
     }

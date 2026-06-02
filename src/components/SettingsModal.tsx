@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { type Backend, setBackendPreference, getBackendPreference } from "../lib/llm";
+import { type Backend, setBackendPreference, getBackendPreference, getEffectiveBackend } from "../lib/llm";
 import { loadServerConfig, saveServerConfig, type ServerLLMConfig } from "../lib/server-llm";
 
 interface SettingsModalProps {
@@ -79,6 +79,14 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
                 </label>
               ))}
             </div>
+            <p className="text-[11px] text-text-muted mt-2">
+              Active: <span className="text-text-secondary font-medium">{getEffectiveBackend()}</span>
+              {getEffectiveBackend() !== backend && (
+                <span className="text-amber-500">
+                  {" "}(will fallback — {backend} unavailable)
+                </span>
+              )}
+            </p>
           </div>
 
           {backend === "server" && (
@@ -134,7 +142,7 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
                 </div>
               </div>
               <div className="text-[11px] text-text-muted leading-relaxed space-y-1">
-                <p><strong>Ollama (local, free):</strong> Install <a className="text-accent underline" href="https://ollama.com" target="_blank" rel="noopener">Ollama</a>, run <code className="text-accent">ollama pull llama3.2</code>, then <code className="text-accent">ollama serve</code> (or just leave it running in the background). The defaults above work as-is.</p>
+                <p><strong>Ollama (local, free):</strong> Install <a className="text-accent underline" href="https://ollama.com" target="_blank" rel="noopener">Ollama</a>, run <code className="text-accent">ollama pull llama3.2</code>. It runs as a background service — the defaults above work as-is.</p>
                 <p><strong>OpenAI (cloud, paid):</strong> Set Base URL to <code className="text-accent">https://api.openai.com/v1</code>, API Key to your OpenAI key, model to <code className="text-accent">gpt-4o-mini</code> or similar.</p>
                 <p><strong>Any OpenAI-compatible provider</strong> (Together, Groq, etc.) works too — just point the URL at their endpoint.</p>
               </div>

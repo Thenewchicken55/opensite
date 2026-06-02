@@ -37,7 +37,9 @@ function serializeElement(el: Element): SerializedNode {
 export function serializeDom(canvas: HTMLElement): SerializedNode[] {
   const nodes: SerializedNode[] = [];
   for (const child of canvas.children) {
-    nodes.push(serializeElement(child));
+    if (!EXCLUDED_TAGS.has(child.tagName.toLowerCase())) {
+      nodes.push(serializeElement(child));
+    }
   }
   return nodes;
 }
