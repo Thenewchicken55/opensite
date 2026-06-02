@@ -96,6 +96,9 @@ export function ChatPanel() {
   const handleReset = useCallback(() => {
     setMessages([]);
     localStorage.removeItem(HISTORY_KEY);
+  }, []);
+
+  const handleClearCanvas = useCallback(() => {
     const canvas = document.querySelector<HTMLElement>("#canvas");
     if (canvas) canvas.innerHTML = "";
   }, []);
@@ -139,10 +142,18 @@ export function ChatPanel() {
             {backendLabel}
           </span>
           <button
+            onClick={handleClearCanvas}
+            className="text-xs text-text-muted hover:text-text-secondary transition-colors"
+            title="Clear canvas"
+          >
+            Clear canvas
+          </button>
+          <button
             onClick={handleReset}
             className="text-xs text-text-muted hover:text-text-secondary transition-colors"
+            title="Clear chat"
           >
-            Reset
+            Clear chat
           </button>
         </div>
       </div>
