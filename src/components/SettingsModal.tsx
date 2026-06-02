@@ -61,13 +61,19 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
                     className="accent-accent"
                   />
                   <div>
-                    <span className="text-sm font-medium text-text-primary capitalize">{b}</span>
+                    <span className="text-sm font-medium text-text-primary">
+                      {b === "webllm"
+                        ? "WebLLM (works out of the box)"
+                        : b === "server"
+                          ? "Server (Ollama / OpenAI)"
+                          : "Mock (debug only)"}
+                    </span>
                     <span className="block text-xs text-text-muted">
                       {b === "webllm"
-                        ? "Local in-browser via WebLLM (requires WebGPU)"
+                        ? "Runs Qwen2.5-1.5B in your browser. No setup needed."
                         : b === "server"
-                          ? "Remote LLM via OpenAI-compatible API"
-                          : "Keyword-based simulation (no AI)"}
+                          ? "Connect to any OpenAI-compatible API (Ollama, OpenAI, etc.)"
+                          : "Keyword-based simulation — no AI involved."}
                     </span>
                   </div>
                 </label>
@@ -86,6 +92,11 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
                   placeholder="http://localhost:11434/v1"
                   className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text-primary placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-accent"
                 />
+                <p className="text-[11px] text-text-muted mt-1">
+                  For Ollama: <code className="text-accent">http://localhost:11434/v1</code>.
+                  Port <strong>11434</strong> is Ollama&apos;s default. The <code className="text-accent">/v1</code> is the API path, not a port.
+                  For OpenAI: <code className="text-accent">https://api.openai.com/v1</code>.
+                </p>
               </div>
               <div>
                 <label className="block text-xs text-text-muted mb-1">API Key</label>
@@ -122,12 +133,11 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
                   <span className="text-sm text-text-primary w-8 text-right tabular-nums">{config.temperature.toFixed(1)}</span>
                 </div>
               </div>
-              <p className="text-[11px] text-text-muted leading-relaxed">
-                Works with any OpenAI-compatible API. For local use, run{" "}
-                <code className="text-accent">ollama serve</code> and set the URL to{" "}
-                <code className="text-accent">http://localhost:11434/v1</code>
-                with model <code className="text-accent">llama3.2</code>. Run <code className="text-accent">ollama pull llama3.2</code> if needed.
-              </p>
+              <div className="text-[11px] text-text-muted leading-relaxed space-y-1">
+                <p><strong>Ollama (local, free):</strong> Install <a className="text-accent underline" href="https://ollama.com" target="_blank" rel="noopener">Ollama</a>, run <code className="text-accent">ollama pull llama3.2</code>, then <code className="text-accent">ollama serve</code> (or just leave it running in the background). The defaults above work as-is.</p>
+                <p><strong>OpenAI (cloud, paid):</strong> Set Base URL to <code className="text-accent">https://api.openai.com/v1</code>, API Key to your OpenAI key, model to <code className="text-accent">gpt-4o-mini</code> or similar.</p>
+                <p><strong>Any OpenAI-compatible provider</strong> (Together, Groq, etc.) works too — just point the URL at their endpoint.</p>
+              </div>
             </div>
           )}
         </div>
