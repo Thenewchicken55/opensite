@@ -57,9 +57,13 @@ export function ChatPanel() {
         }
         case "done": {
           const actionCount = event.actions?.length ?? 0;
-          const parts = [`Executed ${actionCount} action${actionCount !== 1 ? "s" : ""}.`];
+          const actionTypes = event.actions?.map((a) => a.action) ?? [];
+          const summary = actionTypes.includes("clear")
+            ? "Cleared canvas and built new page"
+            : `Executed ${actionCount} action${actionCount !== 1 ? "s" : ""}`;
+          const parts = [`${summary}.`];
           if (event.errors?.length) {
-            parts.push(`\nErrors: ${event.errors.join(", ")}`);
+            parts.push(`\nWarnings: ${event.errors.join(", ")}`);
           }
           setMessages((prev) => [
             ...prev.slice(0, -1),

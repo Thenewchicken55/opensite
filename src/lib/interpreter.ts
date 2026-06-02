@@ -2,6 +2,7 @@ import type { DomActionType } from "./schema";
 
 const FORBIDDEN_TAGS = new Set(["script", "html", "head", "body", "iframe", "object", "embed"]);
 const FORBIDDEN_SELECTORS = ["html", "head", "body", "document", "window"];
+const EVENT_ATTR_RE = /^on/i;
 
 function isSelectorForbidden(selector: string): boolean {
   const clean = selector.replace(/[>+~\s].*$/, "").trim();
@@ -30,9 +31,7 @@ export function executeAction(action: DomActionType, canvas: HTMLElement): strin
         if (action.attributes) {
           const attrs = action.attributes as Record<string, string>;
           for (const [key, val] of Object.entries(attrs)) {
-            if (key === "id" || key === "class" || key.startsWith("data-")) {
-              el.setAttribute(key, val);
-            }
+            if (!EVENT_ATTR_RE.test(key)) el.setAttribute(key, val);
           }
         }
         const parent = resolveParent(action, canvas);
@@ -48,7 +47,7 @@ export function executeAction(action: DomActionType, canvas: HTMLElement): strin
         if (action.attributes) {
           const attrs = action.attributes as Record<string, string>;
           for (const [key, val] of Object.entries(attrs)) {
-            if (el instanceof HTMLElement) el.setAttribute(key, val);
+            if (el instanceof HTMLElement && !EVENT_ATTR_RE.test(key)) el.setAttribute(key, val);
           }
         }
         return null;
@@ -97,7 +96,7 @@ export function executeAction(action: DomActionType, canvas: HTMLElement): strin
         if (action.attributes) {
           const attrs = action.attributes as Record<string, string>;
           for (const [key, val] of Object.entries(attrs)) {
-            replacement.setAttribute(key, val);
+            if (!EVENT_ATTR_RE.test(key)) replacement.setAttribute(key, val);
           }
         }
         el.parentNode?.replaceChild(replacement, el);
@@ -182,6 +181,11 @@ export function executeAction(action: DomActionType, canvas: HTMLElement): strin
         if (!el) return `Element not found: ${action.selector}`;
         if (action.content.toLowerCase().includes("<script")) return "Cannot insert script tags";
         el.innerHTML = action.content;
+        return null;
+      }
+
+      case "clear": {
+        canvas.innerHTML = "";
         return null;
       }
     }

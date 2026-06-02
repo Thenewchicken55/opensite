@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const MAX_ACTIONS = 20;
+export const MAX_ACTIONS = 50;
 export const VALID_TAGS = [
   "div", "span", "p", "h1", "h2", "h3", "h4", "h5", "h6",
   "button", "a", "img", "input", "textarea", "select", "option",
@@ -106,6 +106,10 @@ export const SetHTMLAction = z.object({
   content: z.string(),
 });
 
+export const ClearAction = z.object({
+  action: z.literal("clear"),
+});
+
 export const DomAction = z.discriminatedUnion("action", [
   CreateAction,
   UpdateAction,
@@ -121,6 +125,7 @@ export const DomAction = z.discriminatedUnion("action", [
   RemoveClassAction,
   SetTextAction,
   SetHTMLAction,
+  ClearAction,
 ]);
 
 export const ActionList = z.array(DomAction).min(1).max(MAX_ACTIONS);
@@ -140,3 +145,4 @@ export type RemoveClassActionType = z.infer<typeof RemoveClassAction>;
 export type CloneActionType = z.infer<typeof CloneAction>;
 export type SetTextActionType = z.infer<typeof SetTextAction>;
 export type SetHTMLActionType = z.infer<typeof SetHTMLAction>;
+export type ClearActionType = z.infer<typeof ClearAction>;

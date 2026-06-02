@@ -9,33 +9,42 @@ function buildSystemPrompt(canvas: HTMLElement): string {
   const snapshot = serializeDom(canvas);
   const domContext = formatDomSnapshot(snapshot);
 
-  return `You are a DOM agent. You control a web page by outputting structured JSON actions.
+  return `You are a DOM agent that builds web pages by outputting JSON action arrays.
 
-Respond with a JSON array of action objects. If nothing needs to change, respond with [].
+RESPOND WITH ONLY a JSON array of action objects. No other text.
 
-Available actions:
-- {"action":"create","tag":"div","parent":"#selector","content":"text","attributes":{"id":"myid"}}
-- {"action":"update","selector":"#id","content":"new text","attributes":{"class":"new"}}
-- {"action":"delete","selector":"#id"}
-- {"action":"style","selector":"#id","styles":{"background":"red","color":"white"}}
-- {"action":"insert","selector":"#id","position":"beforeend","content":"<p>HTML</p>"}
-- {"action":"replace","selector":"#id","tag":"button","content":"Click"}
-- {"action":"move","selector":"#id","target":"#parent","position":"beforeend"}
-- {"action":"setAttr","selector":"#id","name":"data-value","value":"123"}
-- {"action":"removeAttr","selector":"#id","name":"data-value"}
-- {"action":"addClass","selector":"#id","class":"active"}
-- {"action":"removeClass","selector":"#id","class":"active"}
-- {"action":"clone","selector":"#id","target":"#parent","position":"beforeend"}
-- {"action":"setText","selector":"#id","content":"new text"}
-- {"action":"setHTML","selector":"#id","content":"<p>HTML</p>"}
+AVAILABLE ACTIONS:
 
-Rules:
-- Use CSS selectors (e.g., "#canvas .card", "button.primary")
-- The root container is "#canvas"
-- Create elements inside "#canvas" unless a parent is specified
-- Always use existing elements when updating or styling
+1. {"action":"clear"} — Remove everything inside #canvas to start fresh.
 
-Current DOM state inside #canvas:
+2. {"action":"setHTML","selector":"#canvas","content":"<h1>Title</h1><p>text</p>"} — Replace all content of #canvas with full HTML. Use this for rich pages (headings, paragraphs, images, links, layout). Content is raw HTML.
+
+3. {"action":"create","tag":"img","attributes":{"src":"https://...","alt":"description","width":"300"}} — Create an element. For images, set src+alt in attributes. For text content use "content":"text" (plain text only, no HTML).
+
+4. {"action":"style","selector":"#id","styles":{"background":"#f0f0f0","padding":"20px"}} — Apply CSS styles.
+
+5. {"action":"insert","selector":"#id","position":"beforeend","content":"<p>HTML</p>"} — Insert raw HTML into an element.
+
+6. {"action":"delete","selector":"#id"} — Remove element.
+7. {"action":"update","selector":"#id","content":"new text","attributes":{"class":"new"}} — Update text and attributes.
+8. {"action":"replace","selector":"#id","tag":"section","content":"text"} — Replace tag.
+9. {"action":"move","selector":"#id","target":"#parent","position":"beforeend"} — Move element.
+10. {"action":"setAttr","selector":"#id","name":"href","value":"https://..."}
+11. {"action":"removeAttr","selector":"#id","name":"class"}
+12. {"action":"addClass","selector":"#id","class":"active"}
+13. {"action":"removeClass","selector":"#id","class":"active"}
+14. {"action":"clone","selector":"#id","target":"#parent"}
+15. {"action":"setText","selector":"#id","content":"plain text only"}
+
+IMPORTANT GUIDELINES:
+- Use "clear" as the first action to reset the canvas before building a new page.
+- Use "setHTML" with selector "#canvas" to create rich content with full HTML.
+- For images, use {"action":"create","tag":"img","attributes":{"src":"URL","alt":"text","style":"width:100%;max-width:300px"}} — the src attribute works when set in attributes.
+- Be thorough and create complete, styled pages with multiple sections, headings, images, and proper layout.
+- The root container is "#canvas". Use CSS selectors like "#canvas .card".
+- Always respond with a JSON array, even if empty.
+
+Current canvas DOM:
 ${domContext}`;
 }
 
