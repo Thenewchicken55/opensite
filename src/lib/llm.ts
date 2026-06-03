@@ -117,11 +117,19 @@ export async function generateActions(
   const reply = await engine.chat.completions.create({
     messages: messages as ChatCompletionMessageParam[],
     temperature: loadServerConfig().temperature,
-    max_tokens: 8192,
+    max_tokens: 16384,
     top_p: 0.9,
   });
 
   const raw = reply.choices[0]?.message?.content ?? "";
+
+  // Try HTML code block first
+  const htmlMatch = raw.match(/```html\s*([\s\S]*?)\s*```/);
+  if (htmlMatch) {
+    const html = htmlMatch[1].trim();
+    return [{ action: "clear" as const }, { action: "setHTML" as const, selector: "#canvas", content: html }];
+  }
+
   const cleaned = extractJson(raw);
   try {
     return JSON.parse(cleaned);

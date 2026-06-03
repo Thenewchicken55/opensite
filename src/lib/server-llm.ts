@@ -36,6 +36,12 @@ export function saveServerConfig(config: ServerLLMConfig): void {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(config));
 }
 
+/** Try to extract a complete HTML document from an LLM response */
+function extractHtmlBlock(raw: string): string | null {
+  const match = raw.match(/```html\s*([\s\S]*?)\s*```/);
+  return match ? match[1].trim() : null;
+}
+
 export function extractJson(raw: string): string {
   const cleaned = raw.trim();
 
@@ -225,6 +231,12 @@ export async function generateWithServer(
 
   const data = await res.json();
   const raw = data.choices?.[0]?.message?.content ?? "";
+
+  // Try HTML code block first — LLMs generate HTML much more reliably
+  const html = extractHtmlBlock(raw);
+  if (html) {
+    return [{ action: "clear" as const }, { action: "setHTML" as const, selector: "#canvas", content: html }];
+  }
 
   const cleaned = extractJson(raw);
 
