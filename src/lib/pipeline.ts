@@ -3,11 +3,23 @@ import { executeAll } from "./interpreter";
 import { generateActions, initModel, getBackend } from "./llm";
 import { takeSnapshot, restoreSnapshot } from "./history";
 import { serializeDom, formatDomSnapshot } from "./canvas-snapshot";
+import { extractTopics, findImages } from "./image-service";
 import type { ChatMessage } from "./server-llm";
 
-function buildSystemPrompt(canvas: HTMLElement): string {
+async function buildSystemPrompt(canvas: HTMLElement, userInput: string): Promise<string> {
   const snapshot = serializeDom(canvas);
   const domContext = formatDomSnapshot(snapshot);
+
+  const topics = extractTopics(userInput);
+  const imageResults = [];
+  for (const topic of topics) {
+    const images = await findImages(topic);
+    imageResults.push(...images);
+  }
+
+  const imageHints = imageResults.length > 0
+    ? `\nImages found for this topic (you can use these URLs in <img> tags):\n${imageResults.map((img) => `  <img src='${img.url}' alt='${img.alt}'>`).join("\n")}`
+    : "";
 
   return `You build web pages by outputting HTML inside a markdown code block.
 
@@ -15,21 +27,30 @@ OUTPUT FORMAT — put your HTML in a html code block:
 \`\`\`html
 <h1>Page Title</h1>
 <p>Content here...</p>
-<img src='https://example.com/image.jpg' alt='description'>
 \`\`\`
 
 RULES:
-- Output the COMPLETE page HTML every time, not just changes. The entire canvas will be replaced with your HTML.
-- Use single quotes for HTML attributes (class='container' not class="container") to prevent issues.
-- For images, use <img src='URL' alt='description' style='max-width:100%'>
-- For links, use <a href='URL'>text</a>
-- Add inline styles for layout: style='padding:20px;background:#f0f0f0'
-- Be thorough — create full, styled pages with headings, paragraphs, images, sections, and proper hierarchy.
-- The canvas has no default styles, so add your own inline styles or <style> tags.
+- Output the COMPLETE page HTML every time, not just changes.
+- Use single quotes for HTML attributes (class='container' not class="container").
+- The canvas has no default styles — add your own with inline styles or <style> tags.
 
-If you prefer, you can also use JSON actions for precise surgical changes:
+IMAGES:
+- For icons, logos, diagrams, characters: use inline SVG inside your HTML. SVGs render immediately and always work. Example:
+  \`\`\`html
+  <svg width='40' height='40' viewBox='0 0 40 40'>
+    <circle cx='20' cy='20' r='18' fill='#4a90d9'/>
+    <text x='20' y='26' text-anchor='middle' fill='white' font-size='18' font-weight='bold'>A</text>
+  </svg>
+  \`\`\`
+- For photos and real-world images, use <img src='URL' alt='text' style='max-width:100%'> with real image URLs.
+- SVG is better than external images because it always loads (it's embedded in the page).
+- Create decorative elements like dividers, icons, avatars, and illustrations using SVG.
+
+${imageHints}
+
+If you need fine-grained changes, you can also use JSON actions:
 \`\`\`json
-[{"action":"clear"},{"action":"create","tag":"button","attributes":{"id":"btn1"},"content":"Click"}]
+[{"action":"clear"},{"action":"create","tag":"button","content":"Click"}]
 \`\`\`
 
 Current canvas HTML:
@@ -106,7 +127,7 @@ export async function processPrompt(
 
     emit({ type: "generating", message: "Generating..." });
 
-    const systemPrompt = buildSystemPrompt(canvasElement);
+    const systemPrompt = await buildSystemPrompt(canvasElement, userInput);
     const messages: ChatMessage[] = [
       { role: "system", content: systemPrompt },
       ...history,

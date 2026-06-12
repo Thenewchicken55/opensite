@@ -28,6 +28,11 @@ vi.mock("../server-llm", () => ({
   saveServerConfig: vi.fn(),
 }));
 
+vi.mock("../image-service", () => ({
+  extractTopics: vi.fn().mockReturnValue([]),
+  findImages: vi.fn().mockResolvedValue([]),
+}));
+
 describe("pipeline", () => {
   let canvas: HTMLElement;
 
