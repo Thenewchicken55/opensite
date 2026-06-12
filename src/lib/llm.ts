@@ -1,7 +1,7 @@
 import { CreateMLCEngine, type MLCEngine } from "@mlc-ai/web-llm";
 import type { ChatCompletionMessageParam } from "@mlc-ai/web-llm";
 import { generateMock } from "./mock-llm";
-import { generateWithServer, loadServerConfig, extractJson } from "./server-llm";
+import { generateWithServer, loadServerConfig, extractJson, sanitizeHtml } from "./server-llm";
 import type { DomActionType } from "./schema";
 
 const MODEL_ID = "Qwen2.5-1.5B-Instruct-q4f16_1-MLC";
@@ -126,8 +126,8 @@ export async function generateActions(
   // Try HTML code block first
   const htmlMatch = raw.match(/```html\s*([\s\S]*?)\s*```/);
   if (htmlMatch) {
-    const html = htmlMatch[1].trim();
-    return [{ action: "clear" as const }, { action: "setHTML" as const, selector: "#canvas", content: html }];
+    const clean = sanitizeHtml(htmlMatch[1].trim());
+    return [{ action: "clear" as const }, { action: "setHTML" as const, selector: "#canvas", content: clean }];
   }
 
   const cleaned = extractJson(raw);

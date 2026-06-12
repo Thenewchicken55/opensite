@@ -33,6 +33,8 @@ RULES:
 - Output the COMPLETE page HTML every time, not just changes.
 - Use single quotes for HTML attributes (class='container' not class="container").
 - The canvas has no default styles — add your own with inline styles or <style> tags.
+- Do NOT use <style> tags — they affect the entire page, not just the canvas. Use inline styles instead: style='color:red;font-size:18px'.
+- Do NOT use <link>, <base>, or <meta> tags.
 
 IMAGES:
 - For icons, logos, diagrams, characters: use inline SVG inside your HTML. SVGs render immediately and always work. Example:

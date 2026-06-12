@@ -42,6 +42,15 @@ function extractHtmlBlock(raw: string): string | null {
   return match ? match[1].trim() : null;
 }
 
+/** Strip <style>, <link>, and <base> tags that leak to the global page */
+export function sanitizeHtml(html: string): string {
+  return html
+    .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "")
+    .replace(/<link[^>]*>/gi, "")
+    .replace(/<base[^>]*>/gi, "")
+    .replace(/<meta[^>]*>/gi, "");
+}
+
 export function extractJson(raw: string): string {
   const cleaned = raw.trim();
 
@@ -235,7 +244,8 @@ export async function generateWithServer(
   // Try HTML code block first — LLMs generate HTML much more reliably
   const html = extractHtmlBlock(raw);
   if (html) {
-    return [{ action: "clear" as const }, { action: "setHTML" as const, selector: "#canvas", content: html }];
+    const clean = sanitizeHtml(html);
+    return [{ action: "clear" as const }, { action: "setHTML" as const, selector: "#canvas", content: clean }];
   }
 
   const cleaned = extractJson(raw);
