@@ -24,14 +24,20 @@ const WELCOME_HTML = `\
   </div>
 </div>`;
 
+let canvasInitialized = false;
+
 export function Canvas() {
   const canvasRef = useRef<HTMLDivElement>(null);
 
+  const initCanvas = (el: HTMLDivElement | null) => {
+    if (!el || canvasInitialized) return;
+    canvasInitialized = true;
+    el.innerHTML = WELCOME_HTML;
+    setCanvas(el);
+  };
+
   useEffect(() => {
-    if (canvasRef.current) {
-      canvasRef.current.innerHTML = WELCOME_HTML;
-      setCanvas(canvasRef.current);
-    }
+    return () => { canvasInitialized = false; };
   }, []);
 
   const handleReset = () => {
@@ -52,7 +58,7 @@ export function Canvas() {
         </button>
       </div>
       <div
-        ref={canvasRef}
+        ref={initCanvas}
         id="canvas"
         className="flex-1 p-8 overflow-auto"
       />
