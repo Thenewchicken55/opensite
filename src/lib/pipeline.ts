@@ -73,8 +73,6 @@ const undoStack: string[] = [];
 let redoStack: string[] = [];
 let subscribers: EventCallback[] = [];
 let isProcessing = false;
-let pendingPrompt: (() => void) | null = null;
-
 export function setCanvas(el: HTMLElement): void {
   canvasElement = el;
 }

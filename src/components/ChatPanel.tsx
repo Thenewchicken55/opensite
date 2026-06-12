@@ -37,6 +37,7 @@ export function ChatPanel() {
 
   useEffect(() => {
     const saved = loadHistory();
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (saved.length > 0) setMessages(saved);
   }, []);
 

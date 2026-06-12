@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from "vitest";
-import { setCanvas, processPrompt, subscribe, undo, redo, getUndoCount, getRedoCount } from "../pipeline";
+import { setCanvas, processPrompt, subscribe, undo, redo, getUndoCount } from "../pipeline";
 
 const mockActions = vi.hoisted(() => [
   { action: "create" as const, tag: "div", attributes: { class: "test" } },
