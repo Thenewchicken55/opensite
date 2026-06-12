@@ -98,11 +98,6 @@ export function ChatPanel() {
     localStorage.removeItem(HISTORY_KEY);
   }, []);
 
-  const handleClearCanvas = useCallback(() => {
-    const canvas = document.querySelector<HTMLElement>("#canvas");
-    if (canvas) canvas.innerHTML = "";
-  }, []);
-
   const handleSettingsSaved = useCallback(() => {
     setBackend("detecting");
     detectBackend().then(setBackend);
@@ -141,13 +136,6 @@ export function ChatPanel() {
           <span className={`text-[10px] px-1.5 py-0.5 rounded ${backendColor}`}>
             {backendLabel}
           </span>
-          <button
-            onClick={handleClearCanvas}
-            className="text-xs text-text-muted hover:text-text-secondary transition-colors"
-            title="Clear canvas"
-          >
-            Clear canvas
-          </button>
           <button
             onClick={handleReset}
             className="text-xs text-text-muted hover:text-text-secondary transition-colors"
