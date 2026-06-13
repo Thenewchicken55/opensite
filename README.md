@@ -10,11 +10,23 @@ OpenSite is a browser-native playground where you describe what you want and a l
 
 ## 🚀 Quick Start
 
+**Prerequisites:** Node.js 18+ and npm.
+
 ```bash
+git clone https://github.com/Thenewchicken55/opensite.git
+cd opensite
+npm install
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000). Type something like *"delete all the text and create a wiki about chicken"*. Watch the magic.
+Open [http://localhost:3000](http://localhost:3000). Type something like *"make a wiki about chicken"*. Watch the magic.
+
+### Production build
+
+```bash
+npm run build
+npm start
+```
 
 ## 🧠 How It Works
 
